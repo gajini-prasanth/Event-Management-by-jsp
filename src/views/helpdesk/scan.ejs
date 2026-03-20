@@ -1,0 +1,141 @@
+<%- include('../partials/head', { title, user }) %>
+
+<h1 class="h3 mb-4">Help Desk QR Scanner</h1>
+<% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h5">Live Scanner</h2>
+        <div class="d-flex gap-2 mb-2">
+          <button id="startScannerBtn" type="button" class="btn btn-primary btn-sm">Start Camera Scan</button>
+          <button id="stopScannerBtn" type="button" class="btn btn-outline-secondary btn-sm" disabled>Stop</button>
+        </div>
+        <div id="scannerStatus" class="small text-muted mb-2">Tap "Start Camera Scan" and allow camera access.</div>
+        <div id="reader" class="rounded border p-2"></div>
+        <p class="small text-muted mt-2 mb-0">On mobile, use HTTPS and allow camera permission to scan QR codes.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <h2 class="h5">Manual Lookup</h2>
+        <form action="/helpdesk/lookup" method="POST" class="d-flex gap-2">
+          <input class="form-control" name="qrString" id="qrStringInput" placeholder="Paste or scan QR string" required />
+          <button class="btn btn-primary">Lookup</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h2 class="h5">Student Details</h2>
+        <% if (student) { %>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item"><strong>Name:</strong> <%= student.Name %></li>
+            <li class="list-group-item"><strong>Contact:</strong> <%= student.Contact || '-' %></li>
+            <li class="list-group-item"><strong>Event:</strong> <%= student.Event_Name %></li>
+            <li class="list-group-item"><strong>Team:</strong> <%= student.Team_Name || '-' %></li>
+            <li class="list-group-item"><strong>Team Members:</strong> <%= student.Team_Members || '-' %></li>
+            <li class="list-group-item"><strong>Block:</strong> <%= student.Block_Name || '-' %></li>
+            <li class="list-group-item"><strong>Floor:</strong> <%= student.Floor_No || '-' %></li>
+            <li class="list-group-item"><strong>Class:</strong> <%= student.Class_No || '-' %></li>
+            <li class="list-group-item"><strong>Lunch Status:</strong> <%= student.Lunch_Status %></li>
+          </ul>
+        <% } else { %>
+          <p class="text-muted mb-0">No scan result yet.</p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script>
+  const startBtn = document.getElementById("startScannerBtn");
+  const stopBtn = document.getElementById("stopScannerBtn");
+  const scannerStatus = document.getElementById("scannerStatus");
+  const qrInput = document.getElementById("qrStringInput");
+  let scanner = null;
+
+  function onScanSuccess(decodedText) {
+    qrInput.value = decodedText;
+    if (scanner) {
+      scanner
+        .clear()
+        .catch(() => null)
+        .finally(() => {
+          scanner = null;
+          stopBtn.disabled = true;
+          startBtn.disabled = false;
+        });
+    }
+    qrInput.form.submit();
+  }
+
+  function onScanFailure() {
+    // Ignore per-frame decode failures; only successful scans are handled.
+  }
+
+  async function startScanner() {
+    if (!window.isSecureContext) {
+      scannerStatus.textContent = "Camera access needs HTTPS on mobile browsers.";
+      scannerStatus.className = "small text-danger mb-2";
+      return;
+    }
+
+    try {
+      startBtn.disabled = true;
+      scannerStatus.textContent = "Requesting camera permission...";
+      scannerStatus.className = "small text-muted mb-2";
+
+      scanner = new Html5Qrcode("reader");
+      await scanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 220, height: 220 },
+          aspectRatio: 1.333333,
+          disableFlip: false,
+        },
+        onScanSuccess,
+        onScanFailure
+      );
+
+      stopBtn.disabled = false;
+      scannerStatus.textContent = "Camera active. Point to a QR code.";
+      scannerStatus.className = "small text-success mb-2";
+    } catch (error) {
+      scannerStatus.textContent = `Unable to access camera: ${error && error.message ? error.message : "permission denied"}`;
+      scannerStatus.className = "small text-danger mb-2";
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      scanner = null;
+    }
+  }
+
+  async function stopScanner() {
+    if (!scanner) return;
+    try {
+      await scanner.stop();
+      await scanner.clear();
+      scannerStatus.textContent = "Scanner stopped.";
+      scannerStatus.className = "small text-muted mb-2";
+    } catch (error) {
+      scannerStatus.textContent = "Could not stop scanner cleanly.";
+      scannerStatus.className = "small text-warning mb-2";
+    } finally {
+      scanner = null;
+      stopBtn.disabled = true;
+      startBtn.disabled = false;
+    }
+  }
+
+  startBtn.addEventListener("click", startScanner);
+  stopBtn.addEventListener("click", stopScanner);
+</script>
+
+<%- include('../partials/foot') %>

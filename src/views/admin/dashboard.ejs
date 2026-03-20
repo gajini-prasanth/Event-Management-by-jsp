@@ -1,0 +1,139 @@
+<%- include('../partials/head', { title, user }) %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1 class="h3 mb-0">Admin Dashboard</h1>
+  <a class="btn btn-primary" href="/admin/register-student">Register Student</a>
+</div>
+
+<% if (error) { %><div class="alert alert-danger"><%= error %></div><% } %>
+<% if (message) { %><div class="alert alert-success"><%= message %></div><% } %>
+
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="h5">Create Event</h2>
+        <form action="/admin/events/add" method="POST" class="row g-2 mb-4">
+          <div class="col-12"><input class="form-control" name="eventName" placeholder="Event Name" required /></div>
+          <div class="col-md-6"><input class="form-control" name="blockName" placeholder="Block Name" /></div>
+          <div class="col-md-6"><input class="form-control" name="blockImage" placeholder="Block Image URL (https://...)" /></div>
+          <div class="col-md-3"><input class="form-control" name="floorNo" type="number" placeholder="Floor" /></div>
+          <div class="col-md-3"><input class="form-control" name="classNo" placeholder="Class" /></div>
+          <div class="col-12"><button class="btn btn-outline-primary">Add Event</button></div>
+        </form>
+
+        <h3 class="h6">Active Events</h3>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped align-middle">
+            <thead><tr><th>Name</th><th>Block</th><th>Block Picture</th><th>Floor</th><th>Class</th><th>Actions</th></tr></thead>
+            <tbody>
+              <% events.forEach((event) => { %>
+                <tr>
+                  <td><%= event.Event_Name %></td>
+                  <td><%= event.Block_Name || '-' %></td>
+                  <td>
+                    <% if (event.Block_Image) { %>
+                      <img src="<%= event.Block_Image %>" alt="Block" style="width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #dee2e6;" />
+                    <% } else { %>
+                      <span class="text-muted">-</span>
+                    <% } %>
+                  </td>
+                  <td><%= event.Floor_No || '-' %></td>
+                  <td><%= event.Class_No || '-' %></td>
+                  <td>
+                    <form action="/admin/events/delete/<%= event.Event_ID %>" method="POST" class="d-inline">
+                      <button class="btn btn-sm btn-danger">Soft Delete</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-body">
+        <h2 class="h5">Meal Desk Configuration</h2>
+        <form action="/admin/meals/add" method="POST" class="row g-2 mb-4">
+          <div class="col-12"><input class="form-control" name="teamName" placeholder="Team Name" required /></div>
+          <div class="col-4 form-check"><input type="checkbox" class="form-check-input" name="reqMorning" id="reqMorning"><label class="form-check-label" for="reqMorning">Morning</label></div>
+          <div class="col-4 form-check"><input type="checkbox" class="form-check-input" name="reqLunch" id="reqLunch"><label class="form-check-label" for="reqLunch">Lunch</label></div>
+          <div class="col-4 form-check"><input type="checkbox" class="form-check-input" name="reqEvening" id="reqEvening"><label class="form-check-label" for="reqEvening">Evening</label></div>
+          <div class="col-12"><button class="btn btn-outline-primary">Add Team Config</button></div>
+        </form>
+
+        <div class="table-responsive">
+          <table class="table table-sm table-striped align-middle">
+            <thead><tr><th>Team</th><th>Req Morning</th><th>Req Lunch</th><th>Req Evening</th><th>Actions</th></tr></thead>
+            <tbody>
+              <% mealRows.forEach((row) => { %>
+                <tr>
+                  <td><%= row.Team_Name %></td>
+                  <td><%= row.required_morning_snacks ? 'Yes' : 'No' %></td>
+                  <td><%= row.required_lunch ? 'Yes' : 'No' %></td>
+                  <td><%= row.required_evening_snacks ? 'Yes' : 'No' %></td>
+                  <td>
+                    <form action="/admin/meals/delete/<%= row.ID %>" method="POST" class="d-inline">
+                      <button class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-4 shadow-sm">
+  <div class="card-body">
+    <h2 class="h5">Create User (Hash Chain)</h2>
+    <form id="createUserForm" class="row g-2">
+      <div class="col-md-4"><input class="form-control" name="username" placeholder="Username" required /></div>
+      <div class="col-md-3">
+        <select class="form-select" name="role" required>
+          <option value="Admin">Admin</option>
+          <option value="HelpDesk">HelpDesk</option>
+          <option value="FoodDesk">FoodDesk</option>
+        </select>
+      </div>
+      <div class="col-md-3"><input class="form-control" type="password" name="password" placeholder="Password" required /></div>
+      <div class="col-md-2"><button class="btn btn-success w-100">Create</button></div>
+    </form>
+    <div id="userCreateResult" class="small mt-2"></div>
+  </div>
+</div>
+
+<script>
+  document.getElementById("createUserForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const payload = Object.fromEntries(formData.entries());
+    const resultEl = document.getElementById("userCreateResult");
+
+    const res = await fetch("/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      resultEl.className = "small mt-2 text-success";
+      resultEl.textContent = data.message;
+      e.target.reset();
+      return;
+    }
+
+    resultEl.className = "small mt-2 text-danger";
+    resultEl.textContent = data.message || "Failed to create user";
+  });
+</script>
+
+<%- include('../partials/foot') %>

@@ -1,0 +1,22 @@
+body {
+  background: linear-gradient(120deg, #f3f7fb 0%, #eef2ff 100%);
+  min-height: 100vh;
+}
+
+.card {
+  border: 1px solid #e6eaf1;
+  border-radius: 12px;
+}
+
+.qr-preview {
+  max-width: 260px;
+  border: 1px dashed #ced4da;
+  border-radius: 10px;
+  padding: 8px;
+}
+
+@media (max-width: 768px) {
+  .table {
+    font-size: 0.9rem;
+  }
+}

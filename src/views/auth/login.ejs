@@ -1,0 +1,36 @@
+<%- include('../partials/head', { title, user: null }) %>
+
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h4 mb-3">Role Based Login</h1>
+        <% if (error) { %>
+          <div class="alert alert-danger"><%= error %></div>
+        <% } %>
+        <form action="/auth/login" method="POST" class="d-grid gap-3">
+          <div>
+            <label class="form-label">Username</label>
+            <input type="text" name="username" class="form-control" required />
+          </div>
+          <div>
+            <label class="form-label">Role</label>
+            <select name="role" class="form-select" required>
+              <option value="">Select role</option>
+              <option value="Admin">Admin</option>
+              <option value="HelpDesk">Help Desk</option>
+              <option value="FoodDesk">Food Desk</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" required />
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

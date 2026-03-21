@@ -58,56 +58,62 @@ CREATE TABLE IF NOT EXISTS meal_desk_table (
   required_evening_snacks  BOOLEAN DEFAULT FALSE
 );
 
--- Optional: add Block_Image column if it was missing on older installations
-ALTER TABLE events_table
-  ADD COLUMN IF NOT EXISTS Block_Image VARCHAR(500) NULL AFTER Block_Name;
-
--- Optional: add Team_Name / Team_Members columns if missing on older installations
-ALTER TABLE students_table
-  ADD COLUMN IF NOT EXISTS Team_Name    VARCHAR(100) NULL AFTER Event_Name,
-  ADD COLUMN IF NOT EXISTS Team_Members TEXT        NULL AFTER Team_Name;
+-- All columns (Block_Image, Team_Name, Team_Members) are defined in the
+-- CREATE TABLE statements above.  The ALTER TABLE migration guards below are
+-- kept only for reference when upgrading a very old installation that was
+-- created before these columns were added to the schema.
+--
+-- ALTER TABLE events_table
+--   ADD COLUMN IF NOT EXISTS Block_Image VARCHAR(500) NULL AFTER Block_Name;
+--
+-- ALTER TABLE students_table
+--   ADD COLUMN IF NOT EXISTS Team_Name    VARCHAR(100) NULL AFTER Event_Name,
+--   ADD COLUMN IF NOT EXISTS Team_Members TEXT        NULL AFTER Team_Name;
 
 
 -- ============================================================
 -- SECTION 2: SAMPLE / SEED DATA
 -- ============================================================
 
--- Seed events
-INSERT INTO events_table (Event_Name, Block_Name, Floor_No, Class_No)
+-- Seed events (matches production data)
+INSERT INTO `events_table` (`Event_Name`, `Block_Name`, `Block_Image`, `Floor_No`, `Class_No`)
 VALUES
-  ('Hackathon 2026',    'A', 2, 'A-204'),
-  ('Paper Presentation','C', 1, 'C-103'),
-  ('Robo Race',         'B', 3, 'B-309')
+  ('CODE BYTE',      NULL, 'https://esecmap.my.canva.site/', NULL, NULL),
+  ('QUANTA',         NULL, 'https://esecmap.my.canva.site/', NULL, NULL),
+  ('AI-VERSE',       NULL, 'https://esecmap.my.canva.site/', NULL, NULL),
+  ('CONSOLE CRAFT',  NULL, 'https://esecmap.my.canva.site/', NULL, NULL),
+  ('SPIDER VAULT',   NULL, 'https://esecmap.my.canva.site/', NULL, NULL)
 ON DUPLICATE KEY UPDATE
-  Block_Name = VALUES(Block_Name),
-  Floor_No   = VALUES(Floor_No),
-  Class_No   = VALUES(Class_No),
-  deleted_at = NULL;
+  Block_Name  = VALUES(Block_Name),
+  Block_Image = VALUES(Block_Image),
+  Floor_No    = VALUES(Floor_No),
+  Class_No    = VALUES(Class_No),
+  deleted_at  = NULL;
 
--- Seed meal configurations per team
-INSERT INTO meal_desk_table
-  (Team_Name, Morning_Snacks, Lunch, Evening_Snacks, Final_Status,
-   required_morning_snacks, required_lunch, required_evening_snacks)
+-- Seed meal configurations per team (matches production data)
+INSERT INTO `meal_desk_table`
+  (`Team_Name`, `Morning_Snacks`, `Lunch`, `Evening_Snacks`, `Final_Status`,
+   `required_morning_snacks`, `required_lunch`, `required_evening_snacks`)
 VALUES
-  ('Team Alpha', FALSE, FALSE, FALSE, FALSE, TRUE,  TRUE,  FALSE),
-  ('Team Beta',  FALSE, FALSE, FALSE, FALSE, FALSE, TRUE,  TRUE),
-  ('Team Gamma', FALSE, FALSE, FALSE, FALSE, TRUE,  FALSE, TRUE)
+  ('SPARK', 0, 0, 0, 0, 1, 1, 1)
 ON DUPLICATE KEY UPDATE
   required_morning_snacks = VALUES(required_morning_snacks),
   required_lunch          = VALUES(required_lunch),
   required_evening_snacks = VALUES(required_evening_snacks);
 
--- Seed sample students (QR strings are unique identifiers)
-INSERT INTO students_table (Name, Contact, QR_String, Event_Name, Team_Name, Lunch_Status)
+-- Seed sample students (matches production data)
+INSERT INTO `students_table`
+  (`Name`, `Contact`, `QR_String`, `Event_Name`, `Team_Name`, `Team_Members`, `Lunch_Status`)
 VALUES
-  ('Aarav Kumar', '9876543210', 'QR-HACK-001-AARAV', 'Hackathon 2026',    'Team Alpha', 'NO'),
-  ('Diya Nair',   '9876501234', 'QR-PAPER-002-DIYA', 'Paper Presentation','Team Beta',  'NO'),
-  ('Rohan Iyer',  '9876005678', 'QR-ROBO-003-ROHAN', 'Robo Race',         'Team Gamma', 'NO')
+  ('GAJINI PRASANTH G', '8344458720',
+   'GAJINI PRASANTH G|8344458720|CODE BYTE|SPARK|1773998707809|3bc42723-5d62-454e-b70f-30ea64b109ed',
+   'CODE BYTE', 'SPARK', 'Mohan', 'NO')
 ON DUPLICATE KEY UPDATE
   Name       = VALUES(Name),
   Contact    = VALUES(Contact),
   Event_Name = VALUES(Event_Name),
-  Team_Name  = VALUES(Team_Name);
+  Team_Name  = VALUES(Team_Name),
+  Team_Members = VALUES(Team_Members);
 
 -- NOTE: User (admin / helpdesk / fooddesk) passwords are bcrypt hash-chained
 -- and must be seeded via the Node.js scripts:
@@ -235,10 +241,12 @@ INSERT IGNORE INTO meal_desk_table
 VALUES ('Team Delta', FALSE, FALSE, FALSE, FALSE, TRUE, TRUE, TRUE);
 
 -- Update which meals a team is required to receive (admin).
--- NOTE: Changing Team_Name here will orphan any students_table rows that still
--- reference the old name via the Event_Name foreign-key chain.  Only rename a
--- team when the corresponding students_table.Team_Name values have also been
--- updated (or when no students are yet linked to this team).
+-- NOTE: Changing Team_Name here will cause students_table rows that still
+-- reference the old name in the Team_Name column to become mismatched.
+-- students_table.Team_Name is a plain VARCHAR with no foreign-key constraint
+-- to meal_desk_table, so the database will not prevent the rename.  Only
+-- rename a team when the corresponding students_table.Team_Name values have
+-- also been updated (or when no students are yet linked to this team).
 UPDATE meal_desk_table
 SET Team_Name               = 'Team Delta',
     required_morning_snacks = TRUE,

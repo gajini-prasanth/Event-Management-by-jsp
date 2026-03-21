@@ -16,46 +16,6 @@ async function main() {
 
   try {
     await connection.query(schemaSql);
-
-    const [blockImageColumns] = await connection.query(
-      `SELECT COLUMN_NAME
-       FROM INFORMATION_SCHEMA.COLUMNS
-       WHERE TABLE_SCHEMA = ?
-         AND TABLE_NAME = 'events_table'
-         AND COLUMN_NAME = 'Block_Image'`,
-      [process.env.DB_NAME || "college_event_db"]
-    );
-
-    if (blockImageColumns.length === 0) {
-      await connection.query("ALTER TABLE events_table ADD COLUMN Block_Image VARCHAR(500) NULL AFTER Block_Name");
-    }
-
-    const [teamNameColumns] = await connection.query(
-      `SELECT COLUMN_NAME
-       FROM INFORMATION_SCHEMA.COLUMNS
-       WHERE TABLE_SCHEMA = ?
-         AND TABLE_NAME = 'students_table'
-         AND COLUMN_NAME = 'Team_Name'`,
-      [process.env.DB_NAME || "college_event_db"]
-    );
-
-    if (teamNameColumns.length === 0) {
-      await connection.query("ALTER TABLE students_table ADD COLUMN Team_Name VARCHAR(100) NULL AFTER Event_Name");
-    }
-
-    const [teamMembersColumns] = await connection.query(
-      `SELECT COLUMN_NAME
-       FROM INFORMATION_SCHEMA.COLUMNS
-       WHERE TABLE_SCHEMA = ?
-         AND TABLE_NAME = 'students_table'
-         AND COLUMN_NAME = 'Team_Members'`,
-      [process.env.DB_NAME || "college_event_db"]
-    );
-
-    if (teamMembersColumns.length === 0) {
-      await connection.query("ALTER TABLE students_table ADD COLUMN Team_Members TEXT NULL AFTER Team_Name");
-    }
-
     // eslint-disable-next-line no-console
     console.log("Database schema initialized successfully.");
   } finally {

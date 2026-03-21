@@ -1,9 +1,19 @@
 [build]
   publish = "src/public"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "22"
 
+[functions]
+  node_bundler = "nft"
+  included_files = ["src/views/**"]
+
 # .env.example contains only placeholder values (REPLACE_ME), not real secrets.
 [secrets_scanning]
   omit_paths = [".env.example"]
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/server/:splat"
+  status = 200

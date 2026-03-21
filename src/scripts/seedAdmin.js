@@ -6,9 +6,12 @@ const pool = require("../config/db");
 
 async function main() {
   const username = process.env.ADMIN_USERNAME || "admin";
-  const password = process.env.ADMIN_PASSWORD || "Admin@12345";
+  const password = process.env.ADMIN_PASSWORD;
 
-  if (!password || password.length < 8) {
+  if (!password) {
+    throw new Error("ADMIN_PASSWORD environment variable is required to seed admin.");
+  }
+  if (password.length < 8) {
     throw new Error("ADMIN_PASSWORD must be at least 8 characters.");
   }
 

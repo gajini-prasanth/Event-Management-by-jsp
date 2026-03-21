@@ -1,0 +1,9 @@
+[build]
+  publish = "src/public"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# .env.example contains only placeholder values (REPLACE_ME), not real secrets.
+[secrets_scanning]
+  omit_paths = [".env.example"]
